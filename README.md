@@ -1,46 +1,64 @@
-# Backup Android App
+# Android Partition Backup
 
-This is a flutter app that enables you to back up your android partitions using root and dd.
-Please have adb installed globally on your computer. (`adb` should be in your PATH)
-## Features
+A Flutter desktop utility for backing up rooted Android partitions with ADB and restoring verified images with Fastboot.
 
-- Backup partitions
-- Clean UI
+## Safety model
 
-## Screenshots
+Raw partition operations are inherently risky. The app now scopes ADB/Fastboot commands to an explicitly selected device serial and does not treat a backup as successful until the local image has been verified.
 
-![Screenshot 1](img.png)
+Each successful backup records:
 
-## How to use
+- device identity and serial
+- partition name and source layout
+- exact partition byte size
+- SHA-256 of the local image
+- backup timestamp and Android/device metadata
 
-- Install the app
-- Grant root access to `com.android.shell`
-- Ensure developer options is enabled with USB debugging
-- Connect your phone to your computer
-- Open the app
-- Press refresh to see the partitions
-- Select the partition you want to backup
-- Select a location to save the backup
-- Click on the backup button
-- Wait for the backup to complete
-- Done
+The metadata is written to `backup_manifest.json` in the backup folder. The restore screen only accepts folders containing a valid manifest, verifies every image before flashing, compares the target device with the manifest, and requires typed confirmation for destructive operations.
 
-## How to build
+## Requirements
 
-- Clone the repository
-- `flutter pub get`
-- `flutter build windows`
+- Flutter for building the desktop application
+- Android SDK Platform Tools (`adb` and `fastboot`) available in `PATH`
+- USB debugging enabled for backups
+- root access available to the ADB shell for raw partition reads
+- an unlocked bootloader / appropriate Fastboot state when restoring images
+
+## Backing up partitions
+
+1. Connect the Android device with USB debugging enabled.
+2. Authorize the computer on the device.
+3. Open the app and select the target ADB serial if more than one device is connected.
+4. Confirm that root access and the partition list are detected.
+5. Choose a backup folder.
+6. Select the partitions to back up.
+7. Click **Backup Selected**.
+8. Keep the device connected until each selected image is reported as verified.
+
+`userdata` is intentionally skipped by Select All backups. If a transfer or verification fails after the temporary device image was created, the app retains that temporary file and reports its path rather than deleting the only potentially recoverable copy.
+
+## Restoring partitions
+
+1. Put the target device into the bootloader/Fastboot interface.
+2. Open **Flash Partitions**.
+3. Select the target Fastboot serial.
+4. Select the backup folder containing `backup_manifest.json`.
+5. Use **Verify & Flash** for one partition or **Flash All Verified** for the complete manifest set.
+6. Review any serial/product mismatch warning carefully and enter the requested confirmation phrase.
+
+Flash All stops on the first Fastboot failure. Wipe, bootloader lock, bootloader unlock, and flashing operations require explicit serial-specific confirmation.
+
+## Build
+
+```bash
+flutter pub get
+flutter build windows
+```
+
+The project also contains automated tests for command construction, device parsing, backup manifests, and basic UI rendering. GitHub Actions runs `flutter analyze` and `flutter test` for pull requests.
 
 ## License
 
 MIT
 
-```
 Copyright 2024 Andy Wang
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-```
