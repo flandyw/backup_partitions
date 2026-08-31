@@ -30,11 +30,29 @@ class PartitionBackup {
       };
 
   factory PartitionBackup.fromJson(Map<String, dynamic> json) {
+    final name = json['name'] as String;
+    final file = json['file'] as String;
+    final size = json['size'] as int;
+    final hash = json['sha256'] as String;
+
+    if (!RegExp(r'^[A-Za-z0-9._-]+$').hasMatch(name)) {
+      throw const FormatException('Manifest contains an invalid partition name.');
+    }
+    if (path.basename(file) != file || !file.endsWith('.img')) {
+      throw const FormatException('Manifest contains an unsafe image path.');
+    }
+    if (size <= 0) {
+      throw const FormatException('Manifest contains an invalid image size.');
+    }
+    if (!RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(hash)) {
+      throw const FormatException('Manifest contains an invalid SHA-256 value.');
+    }
+
     return PartitionBackup(
-      name: json['name'] as String,
-      file: json['file'] as String,
-      size: json['size'] as int,
-      sha256: json['sha256'] as String,
+      name: name,
+      file: file,
+      size: size,
+      sha256: hash.toLowerCase(),
     );
   }
 
@@ -101,9 +119,21 @@ class BackupManifest {
       throw const FormatException('Unsupported backup manifest version.');
     }
 
+    final serial = json['serial'] as String;
+    final partitionEntries = (json['partitions'] as List<dynamic>)
+        .map((entry) => PartitionBackup.fromJson(entry as Map<String, dynamic>))
+        .toList();
+    if (serial.trim().isEmpty) {
+      throw const FormatException('Backup manifest does not identify a device serial.');
+    }
+    final names = partitionEntries.map((entry) => entry.name).toSet();
+    if (names.length != partitionEntries.length) {
+      throw const FormatException('Backup manifest contains duplicate partitions.');
+    }
+
     return BackupManifest(
       createdAt: DateTime.parse(json['createdAt'] as String),
-      serial: json['serial'] as String,
+      serial: serial,
       model: json['model'] as String,
       manufacturer: json['manufacturer'] as String,
       brand: json['brand'] as String,
@@ -113,9 +143,7 @@ class BackupManifest {
       androidVersion: json['androidVersion'] as String,
       slot: json['slot'] as String,
       partitionDirectory: json['partitionDirectory'] as String,
-      partitions: (json['partitions'] as List<dynamic>)
-          .map((entry) => PartitionBackup.fromJson(entry as Map<String, dynamic>))
-          .toList(),
+      partitions: partitionEntries,
     );
   }
 
