@@ -1,30 +1,30 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:backup_partitions/flash_partitions.dart';
+import 'package:backup_partitions/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:backup_partitions/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('backup screen renders without starting ADB', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: HomeScreen(autoInitialize: false),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('Partition Backup'), findsOneWidget);
+    expect(find.text('Browse Backup Folder'), findsOneWidget);
+    expect(find.text('Available Partitions'), findsOneWidget);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  testWidgets('restore screen renders without starting fastboot', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: FlashPartitions(autoInitialize: false),
+      ),
+    );
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Restore Partitions'), findsOneWidget);
+    expect(find.text('Select Backup Folder'), findsOneWidget);
+    expect(find.text('Wipe Userdata'), findsOneWidget);
   });
 }
