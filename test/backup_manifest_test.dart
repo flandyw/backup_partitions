@@ -6,7 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('manifest round-trips and detects image corruption', () async {
     final directory = await Directory.systemTemp.createTemp('backup_partitions_test_');
-    addTearDown(() => directory.delete(recursive: true));
+    addTearDown(() async {
+      if (await directory.exists()) {
+        await directory.delete(recursive: true);
+      }
+    });
 
     final image = File('${directory.path}${Platform.pathSeparator}boot.img');
     await image.writeAsBytes([1, 2, 3, 4, 5], flush: true);
@@ -44,5 +48,17 @@ void main() {
 
     await image.writeAsBytes([9, 9, 9], flush: true);
     expect(await loaded.partitions.single.verify(directory), isFalse);
+  });
+
+  test('partition manifest rejects unsafe image paths', () {
+    expect(
+      () => PartitionBackup.fromJson({
+        'name': 'boot',
+        'file': '../boot.img',
+        'size': 4096,
+        'sha256': 'a' * 64,
+      }),
+      throwsFormatException,
+    );
   });
 }
